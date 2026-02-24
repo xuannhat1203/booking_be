@@ -1,0 +1,46 @@
+services:
+  # The database service
+  - type: worker
+    name: booking-db
+    runtime: docker
+    env: docker
+    plan: free # or starter
+    envVars:
+      - key: MYSQL_DATABASE
+        value: booking_app_database
+      - key: MYSQL_ROOT_PASSWORD
+        fromContext: env
+      - key: MYSQL_USER
+        value: root
+      - key: MYSQL_PASSWORD
+        fromContext: env
+    disk:
+      name: mysql-data
+      mountPath: /var/lib/mysql
+      sizeGB: 1
+
+  # The Spring Boot application
+  - type: web
+    name: booking-be
+    runtime: docker
+    plan: free
+    envVars:
+      - key: DB_HOST
+        fromService:
+          name: booking-db
+          type: host
+      - key: DB_PORT
+        value: 3306
+      - key: DB_NAME
+        value: booking_app_database
+      - key: DB_USERNAME
+        value: root
+      - key: DB_PASSWORD
+        fromService:
+          name: booking-db
+          envVarKey: MYSQL_ROOT_PASSWORD
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SERVER_PORT
+        value: 10000 # Render expects web services on port 10000 by default or via PORT env var
+    healthCheckPath: /actuator/health # Optional, but good if you have spring-boot-starter-actuator
